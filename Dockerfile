@@ -2,12 +2,21 @@
 FROM node:18-alpine as builder
 WORKDIR /app
 
-# 设置 npm 镜像源
-RUN npm config set registry https://registry.npmmirror.com
+# 设置 npm 镜像源和缓存目录
+RUN npm config set registry https://registry.npmmirror.com \
+    && npm config set cache /app/.npm-cache --global
 
+# 首先只复制 package.json 文件以利用缓存
 COPY package*.json ./
-RUN npm install --legacy-peer-deps
+
+# 使用 npm ci 而不是 npm install，并清理缓存
+RUN npm ci --legacy-peer-deps \
+    && npm cache clean --force
+
+# 复制其他源代码
 COPY . .
+
+# 构建
 RUN npm run build
 
 # 生产阶段
