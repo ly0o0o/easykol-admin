@@ -1,0 +1,13 @@
+version: '3'
+services:
+  web:
+    build: .
+    container_name: easykol-admin
+    ports:
+      - "80:80"
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3" 
