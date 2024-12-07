@@ -1,6 +1,10 @@
 # 构建阶段
 FROM node:18-alpine as builder
 WORKDIR /app
+
+# 设置 npm 镜像源
+RUN npm config set registry https://registry.npmmirror.com
+
 COPY package*.json ./
 RUN npm install --legacy-peer-deps
 COPY . .
