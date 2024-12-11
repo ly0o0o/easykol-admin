@@ -31,6 +31,12 @@ export const MembershipForm: React.FC = () => {
   const [members, setMembers] = useState<any[]>([]);
   const [membersLoading, setMembersLoading] = useState(false);
 
+  // 添加自定义配额状态
+  const [customQuota, setCustomQuota] = useState<number | null>(null);
+
+  // 添加状态来控制输入框的值
+  const [quotaValue, setQuotaValue] = useState<number | null>(null);
+
   useEffect(() => {
     fetchEmailsList();
   }, []);
@@ -127,6 +133,19 @@ export const MembershipForm: React.FC = () => {
   useEffect(() => {
     fetchMembersList();
   }, [memberType]);
+
+  // 处理配额变化
+  const handleQuotaChange = (value: number) => {
+    form.setFieldsValue({ accountQuota: value });
+  };
+
+  // 处理自定义配额输入
+  const handleCustomQuotaChange = (value: number | null) => {
+    setCustomQuota(value);
+    if (value !== null) {
+      form.setFieldsValue({ accountQuota: value });
+    }
+  };
 
   // 定义表格列
   const columns = [
@@ -249,32 +268,38 @@ export const MembershipForm: React.FC = () => {
                           账户配额
                         </span>
                       }
+                      required
                     >
-                      <Select
-                        placeholder="请选择或输入配额数量"
-                        size="large"
-                        dropdownRender={(menu) => (
-                          <>
-                            {menu}
-                            <Divider style={{ margin: '8px 0' }} />
-                            <div style={{ padding: '0 8px' }}>
-                              <InputNumber 
-                                style={{ width: '100%' }} 
-                                min={0}
-                                placeholder="自定义配额数量"
-                                size="large"
-                              />
-                            </div>
-                          </>
-                        )}
-                      >
-                        <Select.Option value={30}>30</Select.Option>
-                        <Select.Option value={100}>100</Select.Option>
-                        <Select.Option value={200}>200</Select.Option>
-                        <Select.Option value={500}>500</Select.Option>
-                        <Select.Option value={1000}>1000</Select.Option>
-                        <Select.Option value={10000}>10000</Select.Option>
-                      </Select>
+                      <Space direction="vertical" style={{ width: '100%' }}>
+                        <InputNumber
+                          style={{ width: '100%' }}
+                          min={0}
+                          placeholder="请输入配额数量"
+                          size="large"
+                          value={quotaValue}
+                          onChange={(value) => {
+                            setQuotaValue(value);
+                            if (value) {
+                              form.setFieldsValue({ accountQuota: value });
+                              message.success(`配额已设置为 ${value}`);
+                            }
+                          }}
+                        />
+                        <Space wrap>
+                          {[30, 100, 200, 500, 1000, 10000].map(quota => (
+                            <Button
+                              key={quota}
+                              onClick={() => {
+                                setQuotaValue(quota);
+                                form.setFieldsValue({ accountQuota: quota });
+                                message.success(`配额已设置为 ${quota}`);
+                              }}
+                            >
+                              {quota}
+                            </Button>
+                          ))}
+                        </Space>
+                      </Space>
                     </Form.Item>
 
                     <Row gutter={16}>
