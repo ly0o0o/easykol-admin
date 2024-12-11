@@ -60,8 +60,8 @@ export const MembershipForm: React.FC = () => {
   const handleSubmit = async (values: any) => {
     const params: UpdateMembershipParams = {
       type: values.type,
-      effectiveAt: values.effectiveAt?.toDate(),
-      expireAt: values.expireAt?.toDate(),
+      effectiveAt: values.effectiveAt?.hour(values.effectiveAt.hour() + 8).toDate(),
+      expireAt: values.expireAt?.hour(values.expireAt.hour() + 8).toDate(),
       accountQuota: values.accountQuota,
       timezone: values.timezone,
       status: values.status,
