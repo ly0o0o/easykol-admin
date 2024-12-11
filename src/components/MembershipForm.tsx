@@ -222,6 +222,7 @@ export const MembershipForm: React.FC = () => {
                         placeholder="请选择或输入邮箱"
                         style={{ width: '100%' }}
                         size="large"
+                        options={emails.map(email => ({ value: email, label: email }))}
                       />
                     </Form.Item>
 

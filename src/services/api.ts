@@ -100,7 +100,7 @@ export const fetchMembers = async (type: 'FREE' | 'PAID' = 'PAID') => {
   try {
     return new Promise<ApiResponse<MemberInfo[]>>((resolve, reject) => {
       const xhr = new XMLHttpRequest();
-      xhr.open('GET', `${API_BASE_URL}/members?type=${type}`);
+      xhr.open('GET', `${API_BASE_URL}/userMember/members?type=${type}`);
       xhr.setRequestHeader('Accept', 'application/json');
       
       xhr.onload = function() {
