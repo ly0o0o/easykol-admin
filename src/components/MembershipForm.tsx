@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Form, Input, DatePicker, InputNumber, Select, Button, message, Divider, Row, Col, Table, Card, Space, Tag, Tabs, Statistic } from 'antd';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Form, Input, DatePicker, InputNumber, Select, Button, message, Row, Col, Table, Card, Space, Tabs, Avatar, Spin, Typography } from 'antd';
 import type { UpdateMembershipParams } from '../types';
-import { fetchEmails, updateMembership, fetchMembers } from '../services/api';
+import { fetchEmails, updateMembership, fetchMembers, fetchMembersInfo } from '../services/api';
 import { 
   UserOutlined, 
   CalendarOutlined, 
@@ -13,40 +13,50 @@ import {
 import dayjs from 'dayjs';
 import '../styles/MembershipForm.css';
 
+// 添加会员信息卡片组件
+const MemberCard: React.FC<{ member: any }> = ({ member }) => (
+  <Card 
+    size="small" 
+    style={{ marginBottom: '8px', cursor: 'pointer' }}
+    hoverable
+  >
+    <Card.Meta
+      avatar={<Avatar icon={<UserOutlined />} src={member.avatar} />}
+      title={member.email}
+      description={
+        <Space direction="vertical" size="small">
+          <div>类型: {member.membership.type}</div>
+          <div>状态: {member.membership.status}</div>
+          <div>配额: {member.membership.accountQuota}</div>
+          <div>已用: {member.membership.usedQuota}</div>
+          <div>有效时间: {dayjs(member.membership.effectiveAt).format('YYYY-MM-DD HH:mm:ss')}</div>
+          <div>过期时间: {dayjs(member.membership.expireAt).format('YYYY-MM-DD HH:mm:ss')}</div>
+          <div>创建时间: {dayjs(member.membership.createdAt).format('YYYY-MM-DD HH:mm:ss')}</div>
+        </Space>
+      }
+    />  
+  </Card>
+);
+
 export const MembershipForm: React.FC = () => {
   const [emails, setEmails] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [form] = Form.useForm();
-
-  const [searchValue, setSearchValue] = useState('');
-  const [filteredEmails, setFilteredEmails] = useState<string[]>([]);
-
-  // 添加会员期限选项
-
-
-  const [selectedDuration, setSelectedDuration] = useState<number | 'custom'>(30);
 
   // 添加新的状态
   const [memberType, setMemberType] = useState<'PAID' | 'FREE'>('PAID');
   const [members, setMembers] = useState<any[]>([]);
   const [membersLoading, setMembersLoading] = useState(false);
 
-  // 添加自定义配额状态
-  const [customQuota, setCustomQuota] = useState<number | null>(null);
-
   // 添加状态来控制输入框的值
   const [quotaValue, setQuotaValue] = useState<number | null>(null);
+
+  const [selectedMembers, setSelectedMembers] = useState<any[]>([]);
+  const [memberInfoLoading, setMemberInfoLoading] = useState(false);
 
   useEffect(() => {
     fetchEmailsList();
   }, []);
-
-  useEffect(() => {
-    const filtered = emails.filter(email => 
-      email.toLowerCase().includes(searchValue.toLowerCase())
-    );
-    setFilteredEmails(filtered);
-  }, [searchValue, emails]);
 
   const fetchEmailsList = async () => {
     try {
@@ -58,6 +68,13 @@ export const MembershipForm: React.FC = () => {
   };
 
   const handleSubmit = async (values: any) => {
+    // 添加邮箱验证
+    const invalidEmails = values.emails.filter((email: string) => !emails.includes(email));
+    if (invalidEmails.length > 0) {
+      message.error(`以下邮箱不在数据库中，请叫他们先注册吧，大头！：${invalidEmails.join(', ')}`);
+      return;
+    }
+
     const params: UpdateMembershipParams = {
       type: values.type,
       effectiveAt: values.effectiveAt?.hour(values.effectiveAt.hour() + 8).toDate(),
@@ -84,35 +101,8 @@ export const MembershipForm: React.FC = () => {
     }
   };
 
-  const handleEmailSearch = (value: string) => {
-    setSearchValue(value);
-  };
-
-  const validateEmail = (email: string) => {
-    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return regex.test(email);
-  };
-
-  // 验证邮箱是否在列表中
-  const validateEmailExists = (email: string) => {
-    return emails.includes(email);
-  };
-
-  // 处理会员期限变化
-  const handleDurationChange = (value: number | 'custom') => {
-    setSelectedDuration(value);
-    if (value !== 'custom') {
-      const effectiveAt = dayjs();
-      const expireAt = effectiveAt.add(value, 'day');
-      form.setFieldsValue({
-        effectiveAt,
-        expireAt
-      });
-    }
-  };
-
   // 添加获取会员列表的方法
-  const fetchMembersList = async () => {
+  const fetchMembersList = useCallback(async () => {
     try {
       setMembersLoading(true);
       const result = await fetchMembers(memberType);
@@ -122,7 +112,7 @@ export const MembershipForm: React.FC = () => {
     } finally {
       setMembersLoading(false);
     }
-  };
+  }, [memberType]);
 
   // 添加会员类型切换方法
   const toggleMemberType = () => {
@@ -132,18 +122,18 @@ export const MembershipForm: React.FC = () => {
   // 在组件加载和会员类型变化时获取列表
   useEffect(() => {
     fetchMembersList();
-  }, [memberType]);
+  }, [memberType, fetchMembersList]);
 
-  // 处理配额变化
-  const handleQuotaChange = (value: number) => {
-    form.setFieldsValue({ accountQuota: value });
-  };
-
-  // 处理自定义配额输入
-  const handleCustomQuotaChange = (value: number | null) => {
-    setCustomQuota(value);
-    if (value !== null) {
-      form.setFieldsValue({ accountQuota: value });
+  // 添加获取会员信息的方法
+  const fetchMembersInformation = async (selectedEmails: string[]) => {
+    try {
+      setMemberInfoLoading(true);
+      const result = await fetchMembersInfo(selectedEmails);
+      setSelectedMembers(result.data.users);
+    } catch (error) {
+      message.error('获取会员信息失败');
+    } finally {
+      setMemberInfoLoading(false);
     }
   };
 
@@ -196,15 +186,6 @@ export const MembershipForm: React.FC = () => {
     },
   ];
 
-  // 添加配额统计
-  const quotaStats = React.useMemo(() => {
-    return members.reduce((acc, member) => {
-      acc.totalQuota += member.accountQuota;
-      acc.usedQuota += member.usedQuota;
-      return acc;
-    }, { totalQuota: 0, usedQuota: 0 });
-  }, [members]);
-
   return (
     <div className="App">
       <Card style={{ maxWidth: '1400px', margin: '0 auto' }}>
@@ -235,6 +216,28 @@ export const MembershipForm: React.FC = () => {
                         </span>
                       }
                       required
+                      rules={[
+                        {
+                          validator: async (_: any, value: string[]) => {
+                            if (!value || value.length === 0) {
+                              // 当清空所有邮箱时，清空选中的会员信息
+                              setSelectedMembers([]);
+                              return;
+                            }
+                            const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+                            const invalidFormatEmails = value.filter(email => !emailRegex.test(email));
+                            if (invalidFormatEmails.length > 0) {
+                              throw new Error(`以下邮箱格式不正确：${invalidFormatEmails.join(', ')}`);
+                            }
+                            const invalidEmails = value.filter(email => !emails.includes(email));
+                            if (invalidEmails.length > 0) {
+                              throw new Error(`以下邮箱不在数据库中，请叫他们先注册吧，大头！：${invalidEmails.join(', ')}`);
+                            }
+                            // 获取选中邮箱的会员信息
+                            await fetchMembersInformation(value);
+                          }
+                        }
+                      ]}
                     >
                       <Select
                         mode="tags"
@@ -242,8 +245,27 @@ export const MembershipForm: React.FC = () => {
                         style={{ width: '100%' }}
                         size="large"
                         options={emails.map(email => ({ value: email, label: email }))}
+                        onChange={(values: string[]) => {
+                          // 当邮箱选择发生变化时，更新会员信息
+                          if (values.length === 0) {
+                            setSelectedMembers([]);
+                          }
+                        }}
                       />
                     </Form.Item>
+
+                    {selectedMembers.length > 0 && (
+                      <div style={{ marginBottom: '24px' }}>
+                        <Spin spinning={memberInfoLoading}>
+                          <div style={{ marginBottom: '16px' }}>
+                            <Typography.Text strong>已选择的会员信息：</Typography.Text>
+                          </div>
+                          {selectedMembers.map((member) => (
+                            <MemberCard key={member.userId} member={member} />
+                          ))}
+                        </Spin>
+                      </div>
+                    )}
 
                     <Form.Item
                       name="type"
