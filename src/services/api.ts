@@ -44,6 +44,22 @@ interface MemberWithStats {
   };
 }
 
+interface QuotaDetail {
+  time: string;
+  quota_cost: number;
+  quota_type: string;
+  description: string;
+  email: string;
+  userId: string;
+}
+
+interface DailyQuota {
+  date: string;
+  userId: string;
+  email: string;
+  daily_usage: number;
+}
+
 export const fetchEmails = async () => {
   try {
     console.log('Fetching emails...');
@@ -186,3 +202,78 @@ export const fetchMembersInfo = async (emails: string[]) => {
     throw error;
   }
 };
+
+export const fetchQuotaDetails = async (email: string, startDate?: string, endDate?: string) => {
+  try {
+    return new Promise<ApiResponse<QuotaDetail[]>>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      const params = new URLSearchParams();
+      params.append('email', email);
+      if (startDate) params.append('startDate', startDate);
+      if (endDate) params.append('endDate', endDate);
+      
+      xhr.open('GET', `${API_BASE_URL}/userMember/quota/details?${params}`);
+      xhr.setRequestHeader('Accept', 'application/json');
+      
+      xhr.onload = function() {
+        if (xhr.status === 200) {
+          try {
+            const response = JSON.parse(xhr.responseText);
+            resolve(response);
+          } catch (error) {
+            reject(new Error('解析响应失败'));
+          }
+        } else {
+          reject(new Error('获取配额明细失败'));
+        }
+      };
+      
+      xhr.onerror = function() {
+        reject(new Error('请求失败'));
+      };
+      
+      xhr.send();
+    });
+  } catch (error) {
+    console.error('fetchQuotaDetails error:', error);
+    throw error;
+  }
+};
+
+export const fetchDailyQuota = async (email: string, startDate?: string, endDate?: string) => {
+  try {
+    return new Promise<ApiResponse<DailyQuota[]>>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      const params = new URLSearchParams();
+      params.append('email', email);
+      if (startDate) params.append('startDate', startDate);
+      if (endDate) params.append('endDate', endDate);
+      
+      xhr.open('GET', `${API_BASE_URL}/userMember/quota/daily?${params}`);
+      xhr.setRequestHeader('Accept', 'application/json');
+      
+      xhr.onload = function() {
+        if (xhr.status === 200) {
+          try {
+            const response = JSON.parse(xhr.responseText);
+            resolve(response);
+          } catch (error) {
+            reject(new Error('解析响应失败'));
+          }
+        } else {
+          reject(new Error('获取每日配额失败'));
+        }
+      };
+      
+      xhr.onerror = function() {
+        reject(new Error('请求失败'));
+      };
+      
+      xhr.send();
+    });
+  } catch (error) {
+    console.error('fetchDailyQuota error:', error);
+    throw error;
+  }
+};
+

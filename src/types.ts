@@ -17,3 +17,20 @@ export interface UpdateMembershipParams {
   status?: MemberStatus;
   usedQuota?: number;
 } 
+
+// 添加新的接口定义
+export interface QuotaDetail {
+  time: string;
+  quota_cost: number;
+  quota_type: string;
+  description: string;
+  email: string;
+  userId: string;
+}
+
+export interface DailyQuota {
+  date: string;
+  userId: string;
+  email: string;
+  daily_usage: number;
+}

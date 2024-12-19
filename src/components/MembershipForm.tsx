@@ -1,17 +1,20 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Form, Input, DatePicker, InputNumber, Select, Button, message, Row, Col, Table, Card, Space, Tabs, Avatar, Spin, Typography } from 'antd';
-import type { UpdateMembershipParams } from '../types';
-import { fetchEmails, updateMembership, fetchMembers, fetchMembersInfo } from '../services/api';
+import type { UpdateMembershipParams,QuotaDetail,DailyQuota } from '../types';
+import { fetchEmails, updateMembership, fetchMembers, fetchMembersInfo, fetchQuotaDetails, fetchDailyQuota } from '../services/api';
 import { 
   UserOutlined, 
   CalendarOutlined, 
   NumberOutlined, 
   FileTextOutlined,
   CrownOutlined,
-  SwapOutlined 
+  SwapOutlined,
+  DownloadOutlined,
+  SearchOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import '../styles/MembershipForm.css';
+import * as XLSX from 'xlsx';
 
 // 添加会员信息卡片组件
 const MemberCard: React.FC<{ member: any }> = ({ member }) => (
@@ -38,6 +41,8 @@ const MemberCard: React.FC<{ member: any }> = ({ member }) => (
   </Card>
 );
 
+
+
 export const MembershipForm: React.FC = () => {
   const [emails, setEmails] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -53,6 +58,11 @@ export const MembershipForm: React.FC = () => {
 
   const [selectedMembers, setSelectedMembers] = useState<any[]>([]);
   const [memberInfoLoading, setMemberInfoLoading] = useState(false);
+
+  const [quotaDetails, setQuotaDetails] = useState<QuotaDetail[]>([]);
+  const [dailyQuota, setDailyQuota] = useState<DailyQuota[]>([]);
+  const [quotaLoading, setQuotaLoading] = useState(false);
+  const [queryForm] = Form.useForm();
 
   useEffect(() => {
     fetchEmailsList();
@@ -185,6 +195,80 @@ export const MembershipForm: React.FC = () => {
       render: (date: string) => dayjs(date).format('YYYY-MM-DD HH:mm'),
     },
   ];
+
+  // 添加查询配额的方法
+  const handleQuotaQuery = async (values: any) => {
+    try {
+      setQuotaLoading(true);
+      const { email, startDate, endDate } = values;
+      
+      const startDateStr = startDate ? startDate.format('YYYY-MM-DD') : undefined;
+      const endDateStr = endDate ? endDate.format('YYYY-MM-DD') : undefined;
+      
+      const [detailsRes, dailyRes] = await Promise.all([
+        fetchQuotaDetails(email, startDateStr, endDateStr),
+        fetchDailyQuota(email, startDateStr, endDateStr)
+      ]);
+      
+      if (detailsRes.statusCode === 1000) {
+        setQuotaDetails(detailsRes.data);
+      }
+      if (dailyRes.statusCode === 1000) {
+        setDailyQuota(dailyRes.data);
+      }
+    } catch (error) {
+      message.error('查询失败');
+    } finally {
+      setQuotaLoading(false);
+    }
+  };
+
+  // 修改导出Excel功能，添加列宽设置
+  const exportToExcel = (email: string) => {
+    // 处理配额明细数据
+    const detailsData = quotaDetails.map(item => ({
+      时间: dayjs(item.time).format('YYYY-MM-DD HH:mm:ss'),
+      配额消耗: item.quota_cost,
+      配额类型: item.quota_type,
+      描述: item.description,
+      邮箱: item.email
+    }));
+
+    // 处理每日统计数据
+    const dailyData = dailyQuota.map(item => ({
+      日期: dayjs(item.date).format('YYYY-MM-DD'),
+      邮箱: item.email,
+      每日使用量: item.daily_usage
+    }));
+    
+    // 创建工作表并设置列宽
+    const detailsWorksheet = XLSX.utils.json_to_sheet(detailsData);
+    const dailyWorksheet = XLSX.utils.json_to_sheet(dailyData);
+    
+    // 设置列宽
+    const detailsCols = [
+      { wch: 20 },  // 时间
+      { wch: 12 },  // 配额消耗
+      { wch: 15 },  // 配额类型
+      { wch: 50 },  // 描述
+      { wch: 30 },  // 邮箱
+    ];
+    
+    const dailyCols = [
+      { wch: 15 },  // 日期
+      { wch: 30 },  // 邮箱
+      { wch: 12 },  // 每日使用量
+    ];
+    
+    detailsWorksheet['!cols'] = detailsCols;
+    dailyWorksheet['!cols'] = dailyCols;
+    
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, detailsWorksheet, "配额明细");
+    XLSX.utils.book_append_sheet(workbook, dailyWorksheet, "每日统计");
+    
+    XLSX.writeFile(workbook, `配额查询结果_${email}_${dayjs().format('YYYY-MM-DD')}.xlsx`);
+  };
 
   return (
     <div className="App">
@@ -424,6 +508,128 @@ export const MembershipForm: React.FC = () => {
                     size="middle"
                   />
                 </>
+              ),
+            },
+            {
+              key: 'quota-query',
+              label: (
+                <span>
+                  <SearchOutlined />
+                  配额查询
+                </span>
+              ),
+              children: (
+                <div style={{ padding: '24px' }}>
+                  <Form
+                    form={queryForm}
+                    onFinish={handleQuotaQuery}
+                    style={{ marginBottom: '24px' }}
+                  >
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center' }}>
+                      <Space size="large" align="start">
+                        <Form.Item
+                          name="email"
+                          label="邮箱"
+                          rules={[{ required: true, message: '请选择邮箱' }]}
+                        >
+                          <Select
+                            showSearch
+                            style={{ width: 250 }}
+                            placeholder="请选择邮箱"
+                            options={emails.map(email => ({ value: email, label: email }))}
+                          />
+                        </Form.Item>
+                        
+                        <Form.Item name="startDate" label="开始日期">
+                          <DatePicker />
+                        </Form.Item>
+                        
+                        <Form.Item name="endDate" label="结束日期">
+                          <DatePicker />
+                        </Form.Item>
+                      </Space>
+                      
+                      <Form.Item style={{ margin: '16px 0' }}>
+                        <Space size="middle">
+                          <Button type="primary" htmlType="submit" loading={quotaLoading}>
+                            查询
+                          </Button>
+                          <Button 
+                            icon={<DownloadOutlined />}
+                            onClick={() => {
+                              const email = queryForm.getFieldValue('email');
+                              exportToExcel(email);
+                            }}
+                            disabled={!quotaDetails.length}
+                          >
+                            导出Excel
+                          </Button>
+                        </Space>
+                      </Form.Item>
+                    </div>
+                  </Form>
+
+                  <Tabs
+                    items={[
+                      {
+                        key: 'daily',
+                        label: '每日统计',
+                        children: (
+                          <Table
+                            dataSource={dailyQuota}
+                            rowKey="date"
+                            columns={[
+                              {
+                                title: '日期',
+                                dataIndex: 'date',
+                                render: (date) => dayjs(date).format('YYYY-MM-DD'),
+                              },
+                              {
+                                title: '邮箱',
+                                dataIndex: 'email',
+                              },
+                              {
+                                title: '每日使用量',
+                                dataIndex: 'daily_usage',
+                              },
+                            ]}
+                            loading={quotaLoading}
+                          />
+                        ),
+                      },
+                      {
+                        key: 'details',
+                        label: '配额明细',
+                        children: (
+                          <Table
+                            dataSource={quotaDetails}
+                            rowKey="time"
+                            columns={[
+                              {
+                                title: '时间',
+                                dataIndex: 'time',
+                                render: (time) => dayjs(time).format('YYYY-MM-DD HH:mm:ss'),
+                              },
+                              {
+                                title: '配额消耗',
+                                dataIndex: 'quota_cost',
+                              },
+                              {
+                                title: '配额类型',
+                                dataIndex: 'quota_type',
+                              },
+                              {
+                                title: '描述',
+                                dataIndex: 'description',
+                              },
+                            ]}
+                            loading={quotaLoading}
+                          />
+                        ),
+                      },
+                    ]}
+                  />
+                </div>
               ),
             },
           ]}
