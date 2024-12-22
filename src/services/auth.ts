@@ -1,4 +1,4 @@
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../config';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../conf/config';
 
 interface AuthResponse {
   access_token: string;

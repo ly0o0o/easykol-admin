@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Login } from './components/Login';
-import { MembershipForm } from './components/MembershipForm';
+import { MembershipForm } from './components/membership/MembershipForm';
 import './App.css';
 
 

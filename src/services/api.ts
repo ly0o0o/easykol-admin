@@ -1,5 +1,5 @@
-import { UpdateMembershipParams } from '../types';
-import { API_BASE_URL } from '../config';
+import { UpdateMembershipParams } from '../types/types';
+import { API_BASE_URL } from '../conf/config';
 
 interface ApiResponse<T> {
   statusCode: number;
