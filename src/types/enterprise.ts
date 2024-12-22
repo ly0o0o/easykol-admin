@@ -9,6 +9,7 @@ export interface Enterprise {
   name: string;
   description?: string;
   accountQuota: number;
+  usedQuota: number;
   effectiveAt: Date;
   expireAt: Date;
   status: EnterpriseStatus;

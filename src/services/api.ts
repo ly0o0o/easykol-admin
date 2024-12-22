@@ -5,7 +5,7 @@ import {
   GetEnterprisesParams,
 } from '../types/types';
 import { AddEnterpriseMembersParams } from '../types/enterprise';
-import { API_BASE_URL } from '../config';
+import { API_BASE_URL } from '../conf/config';
 
 
 interface ApiResponse<T> {

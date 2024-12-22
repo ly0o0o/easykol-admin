@@ -63,7 +63,7 @@ const MemberCard: React.FC<{ member: any }> = ({ member }) => (
   </Card>
 );
 
-// 添加企业详情弹窗组件
+// 企业详情弹窗组件
 const EnterpriseDetailModal: React.FC<{
   visible: boolean;
   enterpriseId: string;
@@ -102,37 +102,66 @@ const EnterpriseDetailModal: React.FC<{
     >
       <Spin spinning={loading}>
         {detail && (
-          <Descriptions bordered column={2}>
-            <Descriptions.Item label="企业名称">{detail.name}</Descriptions.Item>
-            <Descriptions.Item label="配额">{detail.accountQuota}</Descriptions.Item>
-            <Descriptions.Item label="状态">{detail.status}</Descriptions.Item>
-            <Descriptions.Item label="成员数量">{detail.members?.length || 0}</Descriptions.Item>
-            <Descriptions.Item label="生效时间">
-              {dayjs(detail.effectiveAt).format('YYYY-MM-DD HH:mm:ss')}
-            </Descriptions.Item>
-            <Descriptions.Item label="过期时间">
-              {dayjs(detail.expireAt).format('YYYY-MM-DD HH:mm:ss')}
-            </Descriptions.Item>
-            <Descriptions.Item label="联系人" span={2}>
-              {detail.contactPerson}
-            </Descriptions.Item>
-            <Descriptions.Item label="联系电话" span={2}>
-              {detail.contactPhone}
-            </Descriptions.Item>
-            <Descriptions.Item label="联系邮箱" span={2}>
-              {detail.contactEmail}
-            </Descriptions.Item>
-            <Descriptions.Item label="描述" span={2}>
-              {detail.description}
-            </Descriptions.Item>
-          </Descriptions>
+          <>
+            <Descriptions bordered column={2}>
+              <Descriptions.Item label="企业名称">{detail.name}</Descriptions.Item>
+              <Descriptions.Item label="企业描述">{detail.description || '-'}</Descriptions.Item>
+              <Descriptions.Item label="配额总量">{detail.accountQuota}</Descriptions.Item>
+              <Descriptions.Item label="已用配额">{detail.usedQuota}</Descriptions.Item>
+              <Descriptions.Item label="生效时间">
+                {dayjs(detail.effectiveAt).format('YYYY-MM-DD HH:mm:ss')}
+              </Descriptions.Item>
+              <Descriptions.Item label="过期时间">
+                {dayjs(detail.expireAt).format('YYYY-MM-DD HH:mm:ss')}
+              </Descriptions.Item>
+              <Descriptions.Item label="联系人">{detail.contactPerson || '-'}</Descriptions.Item>
+              <Descriptions.Item label="联系电话">{detail.contactPhone || '-'}</Descriptions.Item>
+              <Descriptions.Item label="联系邮箱">{detail.contactEmail || '-'}</Descriptions.Item>
+              <Descriptions.Item label="企业规模">{detail.scale || '-'}</Descriptions.Item>
+              <Descriptions.Item label="地址" span={2}>{detail.address || '-'}</Descriptions.Item>
+            </Descriptions>
+
+            <Divider orientation="left">成员列表</Divider>
+            <Table
+              dataSource={detail.members}
+              rowKey="userId"
+              columns={[
+                {
+                  title: '成员邮箱',
+                  dataIndex: ['user', 'email'],
+                },
+                {
+                  title: '角色',
+                  dataIndex: 'isEnterpriseAdmin',
+                  render: (value: boolean) => value ? '管理员' : '普通成员',
+                },
+                {
+                  title: '时区',
+                  dataIndex: 'timezone',
+                },
+                {
+                  title: '配额总量',
+                  dataIndex: 'accountQuota',
+                },
+
+                {
+                  title: '配额使用量',
+                  dataIndex: 'usedQuota',
+                },
+                {
+                  title: '状态',
+                  dataIndex: 'status',
+                },
+              ]}
+            />
+          </>
         )}
       </Spin>
     </Modal>
   );
 };
 
-// 添加企业编辑弹窗组件
+// 企业编辑弹窗组件
 const EnterpriseEditModal: React.FC<{
   visible: boolean;
   enterprise: Enterprise | null;
@@ -150,19 +179,20 @@ const EnterpriseEditModal: React.FC<{
         expireAt: enterprise.expireAt ? dayjs(enterprise.expireAt) : undefined,
       });
     }
-  }, [visible, enterprise, form]);
+  }, [visible, enterprise]);
 
-  const handleSubmit = async (values: UpdateEnterpriseParams) => {
+  const handleSubmit = async (values: any) => {
     if (!enterprise) return;
     
     try {
       setLoading(true);
-      const response = await updateEnterprise(enterprise.id, {
+      const params: UpdateEnterpriseParams = {
         ...values,
-        effectiveAt: values.effectiveAt ? new Date(values.effectiveAt) : undefined,
-        expireAt: values.expireAt ? new Date(values.expireAt) : undefined,
-      });
+        effectiveAt: values.effectiveAt?.toISOString(),
+        expireAt: values.expireAt?.toISOString(),
+      };
       
+      const response = await updateEnterprise(enterprise.id, params);
       if (response.statusCode === 1000) {
         message.success('更新成功');
         onSuccess();
@@ -181,32 +211,42 @@ const EnterpriseEditModal: React.FC<{
       open={visible}
       onCancel={onClose}
       footer={null}
+      width={600}
     >
       <Form
         form={form}
         onFinish={handleSubmit}
         layout="vertical"
       >
-        <Form.Item name="name" label="企业名称" rules={[{ required: true }]}>
+        <Form.Item name="name" label="企业名称">
           <Input />
         </Form.Item>
-        <Form.Item name="accountQuota" label="配额" rules={[{ required: true }]}>
+        <Form.Item name="description" label="企业描述">
+          <Input.TextArea />
+        </Form.Item>
+        <Form.Item name="accountQuota" label="配额总量">
           <InputNumber style={{ width: '100%' }} />
         </Form.Item>
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item name="effectiveAt" label="生效时间">
-              <DatePicker showTime style={{ width: '100%' }} />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item name="expireAt" label="过期时间" rules={[{ required: true }]}>
-              <DatePicker showTime style={{ width: '100%' }} />
-            </Form.Item>
-          </Col>
-        </Row>
-        <Form.Item name="description" label="描述">
-          <Input.TextArea />
+        <Form.Item name="effectiveAt" label="生效时间">
+          <DatePicker showTime style={{ width: '100%' }} />
+        </Form.Item>
+        <Form.Item name="expireAt" label="过期时间">
+          <DatePicker showTime style={{ width: '100%' }} />
+        </Form.Item>
+        <Form.Item name="contactPerson" label="联系人">
+          <Input />
+        </Form.Item>
+        <Form.Item name="contactPhone" label="联系电话">
+          <Input />
+        </Form.Item>
+        <Form.Item name="contactEmail" label="联系邮箱">
+          <Input />
+        </Form.Item>
+        <Form.Item name="scale" label="企业规模">
+          <Input />
+        </Form.Item>
+        <Form.Item name="address" label="地址">
+          <Input />
         </Form.Item>
         <Form.Item>
           <Button type="primary" htmlType="submit" loading={loading}>
@@ -228,7 +268,12 @@ const MemberManageModal: React.FC<{
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [members, setMembers] = useState<EnterpriseMember[]>([]);
-  const [emailList, setEmailList] = useState<string[]>([]); // 添加邮箱列表状态
+  const [emailList, setEmailList] = useState<string[]>([]);
+  const [validatingEmails, setValidatingEmails] = useState(false);
+  const [emailValidation, setEmailValidation] = useState<{
+    valid: string[];
+    invalid: string[];
+  }>({ valid: [], invalid: [] });
 
   // 获取可选邮箱列表
   useEffect(() => {
@@ -248,26 +293,87 @@ const MemberManageModal: React.FC<{
     }
   }, [visible]);
 
-  // 获取当前成员列表
+  // 获取企业成员详情
+  const fetchEnterpriseDetail = async () => {
+    if (!enterprise) return;
+    try {
+      const response = await getEnterpriseDetail(enterprise.id);
+      if (response.statusCode === 1000) {
+        setMembers(response.data.members || []);
+      }
+    } catch (error) {
+      message.error('获取企业成员列表失败');
+    }
+  };
+
   useEffect(() => {
     if (visible && enterprise) {
-      setMembers(enterprise.members || []);
+      fetchEnterpriseDetail();
     }
   }, [visible, enterprise]);
+
+  // 验证邮箱格式和存在性
+  const validateEnterpriseEmails = async (emails: string[]): Promise<{
+    validEmails: string[];
+    invalidEmails: string[];
+  }> => {
+    const validEmails: string[] = [];
+    const invalidEmails: string[] = [];
+
+    // 邮箱格式验证
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+    for (const email of emails) {
+      // 验证邮箱格式
+      if (!emailRegex.test(email)) {
+        invalidEmails.push(email);
+        continue;
+      }
+
+      // 验证是否已注册
+      if (!emailList.includes(email)) {
+        invalidEmails.push(email);
+        continue;
+      }
+
+      // 验证是否已是企业成员
+      const isExistingMember = members.some(member => member.user.email === email);
+      if (isExistingMember) {
+        invalidEmails.push(email);
+        continue;
+      }
+
+      validEmails.push(email);
+    }
+
+    // 更新验证状态
+    setEmailValidation({
+      valid: validEmails,
+      invalid: invalidEmails
+    });
+
+    return { validEmails, invalidEmails };
+  };
 
   const handleAddMembers = async (values: { emails: string[]; adminEmails: string[] }) => {
     if (!enterprise) return;
     
+    // 验证所有邮箱
+    const allEmails = Array.from(new Set([...values.emails, ...values.adminEmails]));
+    const validationResult = await validateEnterpriseEmails(allEmails);
+    if (validationResult.invalidEmails.length > 0) return;
+    
     try {
       setLoading(true);
       const response = await addEnterpriseMembers(enterprise.id, {
-        emails: values.emails,
+        emails: allEmails,
         adminEmails: values.adminEmails,
       });
       
       if (response.statusCode === 1000) {
         message.success('添加成员成功');
         form.resetFields();
+        fetchEnterpriseDetail();
         onSuccess();
       }
     } catch (error) {
@@ -277,12 +383,30 @@ const MemberManageModal: React.FC<{
     }
   };
 
+  // 监听成员邮箱变化
+  const handleMemberEmailsChange = (emails: string[]) => {
+    // 清除错误提示
+    setEmailValidation({ valid: [], invalid: [] });
+  };
+
+  // 监听管理员邮箱变化
+  const handleAdminEmailsChange = (adminEmails: string[]) => {
+    // 清除错误提示
+    setEmailValidation({ valid: [], invalid: [] });
+    
+    const currentMemberEmails = form.getFieldValue('emails') || [];
+    const newMemberEmails = Array.from(new Set([...currentMemberEmails, ...adminEmails]));
+    form.setFieldsValue({
+      emails: newMemberEmails
+    });
+  };
+
   return (
     <Modal
       title="成员管理"
       open={visible}
       onCancel={onClose}
-      width={800}
+      width={1000}
       footer={null}
     >
       <Form
@@ -291,33 +415,101 @@ const MemberManageModal: React.FC<{
         layout="vertical"
       >
         <Form.Item
-          name="emails"
-          label="添加成员"
-          rules={[{ required: true, message: '请选择要添加的成员' }]}
+          label={
+            <Space>
+              <span>添加成员</span>
+              {emailValidation.invalid.length > 0 && (
+                <Tag color="error">
+                  {emailValidation.invalid.length} 个无效邮箱
+                </Tag>
+              )}
+            </Space>
+          }
         >
-          <Select
-            mode="tags"
-            style={{ width: '100%' }}
-            placeholder="请输入或选择邮箱"
-            options={emailList.map(email => ({ value: email, label: email }))}
-          />
+          <Form.Item
+            name="emails"
+            rules={[
+              { required: true, message: '请选择要添加的成员' },
+              {
+                validator: async (_, value) => {
+                  if (!value || value.length === 0) return;
+                  const { invalidEmails } = await validateEnterpriseEmails(value);
+                  if (invalidEmails.length > 0) {
+                    throw new Error('存在无效的邮箱地址');
+                  }
+                }
+              }
+            ]}
+            noStyle
+          >
+            <Select
+              mode="tags"
+              style={{ width: '100%' }}
+              placeholder="请输入或选择邮箱"
+              options={emailList.map((email: string) => ({ value: email, label: email }))}
+              loading={validatingEmails}
+              onChange={handleMemberEmailsChange}
+            />
+          </Form.Item>
+          {emailValidation.invalid.length > 0 && (
+            <Alert
+              type="error"
+              message="以下邮箱无效或不存在："
+              description={
+                <ul>
+                  {emailValidation.invalid.map((email: string) => (
+                    <li key={email}>{email}</li>
+                  ))}
+                </ul>
+              }
+              style={{ marginTop: 8 }}
+            />
+          )}
         </Form.Item>
-        <Form.Item name="adminEmails" label="设为管理员">
-          <Select
-            mode="tags"
-            style={{ width: '100%' }}
-            placeholder="选择要设为管理员的成员邮箱"
-            options={emailList.map(email => ({ value: email, label: email }))}
-          />
+
+        <Form.Item
+          label={
+            <Space>
+              <span>设为管理员</span>
+              <Tooltip title="管理员将自动添加为成员">
+                <InfoCircleOutlined />
+              </Tooltip>
+            </Space>
+          }
+        >
+          <Form.Item
+            name="adminEmails"
+            rules={[
+              {
+                validator: async (_, value) => {
+                  if (!value || value.length === 0) return;
+                  const { invalidEmails } = await validateEnterpriseEmails(value);
+                  if (invalidEmails.length > 0) {
+                    throw new Error('存在无效的管理员邮箱地址');
+                  }
+                }
+              }
+            ]}
+            noStyle
+          >
+            <Select
+              mode="tags"
+              style={{ width: '100%' }}
+              placeholder="请输入管理员邮箱"
+              options={emailList.map((email: string) => ({ value: email, label: email }))}
+              onChange={handleAdminEmailsChange}
+            />
+          </Form.Item>
         </Form.Item>
+
         <Form.Item>
           <Button type="primary" htmlType="submit" loading={loading}>
             添加成员
           </Button>
         </Form.Item>
       </Form>
-
-      <Divider />
+      
+      <Divider orientation="left">成员列表</Divider>
 
       <Table
         dataSource={members}
@@ -328,9 +520,35 @@ const MemberManageModal: React.FC<{
             dataIndex: ['user', 'email'],
           },
           {
-            title: '是否管理员',
+            title: '角色',
             dataIndex: 'isEnterpriseAdmin',
-            render: (value: boolean) => value ? '是' : '否',
+            render: (value: boolean) => value ? '管理员' : '普通成员',
+          },
+          {
+            title: '时区',
+            dataIndex: 'timezone',
+          },
+          {
+            title: '配额使用量',
+            dataIndex: 'usedQuota',
+          },
+          {
+            title: '配额总量',
+            dataIndex: 'accountQuota',
+          },
+          {
+            title: '生效时间',
+            dataIndex: 'effectiveAt',
+            render: (date: string) => dayjs(date).format('YYYY-MM-DD HH:mm:ss'),
+          },
+          {
+            title: '过期时间',
+            dataIndex: 'expireAt',
+            render: (date: string) => dayjs(date).format('YYYY-MM-DD HH:mm:ss'),
+          },
+          {
+            title: '状态',
+            dataIndex: 'status',
           },
           {
             title: '操作',
@@ -341,14 +559,31 @@ const MemberManageModal: React.FC<{
                 danger 
                 onClick={() => {
                   if (enterprise) {
-                    removeEnterpriseMember(enterprise.id, record.userId)
-                      .then(() => {
-                        message.success('移除成员成功');
-                        onSuccess();
-                      })
-                      .catch(() => {
-                        message.error('移除成员失败');
-                      });
+                    Modal.confirm({
+                      title: '确认移除',
+                      content: (
+                        <div>
+                          <p>确定要移除成员 {record.user.email} 吗？</p>
+                          {record.isEnterpriseAdmin && (
+                            <Alert
+                              type="warning"
+                              message="注意：该成员是管理员，移除后将失去管理权限"
+                              style={{ marginTop: 8 }}
+                            />
+                          )}
+                        </div>
+                      ),
+                      onOk: async () => {
+                        try {
+                          await removeEnterpriseMember(enterprise.id, record.userId);
+                          message.success('移除成员成功');
+                          fetchEnterpriseDetail();
+                          onSuccess();
+                        } catch (error) {
+                          message.error('移除成员失败');
+                        }
+                      },
+                    });
                   }
                 }}
               >
@@ -1167,7 +1402,7 @@ export const MembershipForm: React.FC = () => {
                           </Col>
                           <Col span={8}>
                             <Form.Item name="contactPhone" label="联系电话">
-                              <Input placeholder="请输入联系电话" />
+                              <Input placeholder="���输入联系电话" />
                             </Form.Item>
                           </Col>
                           <Col span={8}>
