@@ -150,11 +150,6 @@ const EnterpriseDetailModal: React.FC<{
                   dataIndex: 'usedQuota',
                 },
                 {
-                  title: '已用次数',
-                  dataIndex: 'usedQuota',
-                  render: (usedQuota: number) => Math.floor(usedQuota / 10),
-                },
-                {
                   title: '状态',
                   dataIndex: 'status',
                 },
@@ -537,11 +532,6 @@ const MemberManageModal: React.FC<{
           {
             title: '时区',
             dataIndex: 'timezone',
-          },
-          {
-            title:'已使用次数',
-            dataIndex: 'usedQuota',
-            render: (usedQuota: number) => Math.floor(usedQuota / 10),
           },
           {
             title: '配额使用量',
