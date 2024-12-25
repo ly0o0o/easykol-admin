@@ -108,6 +108,8 @@ const EnterpriseDetailModal: React.FC<{
               <Descriptions.Item label="企业描述">{detail.description || '-'}</Descriptions.Item>
               <Descriptions.Item label="配额总量">{detail.accountQuota}</Descriptions.Item>
               <Descriptions.Item label="已用配额">{detail.usedQuota}</Descriptions.Item>
+              <Descriptions.Item label="已用次数">{detail.usedQuota/10}</Descriptions.Item>
+              <Descriptions.Item label="剩余次数">{detail.accountQuota/10 - detail.usedQuota/10}</Descriptions.Item>
               <Descriptions.Item label="生效时间">
                 {dayjs(detail.effectiveAt).format('YYYY-MM-DD HH:mm:ss')}
               </Descriptions.Item>
@@ -143,10 +145,14 @@ const EnterpriseDetailModal: React.FC<{
                   title: '配额总量',
                   dataIndex: 'accountQuota',
                 },
-
                 {
                   title: '配额使用量',
                   dataIndex: 'usedQuota',
+                },
+                {
+                  title: '已用次数',
+                  dataIndex: 'usedQuota',
+                  render: (usedQuota: number) => Math.floor(usedQuota / 10),
                 },
                 {
                   title: '状态',
@@ -355,11 +361,15 @@ const MemberManageModal: React.FC<{
     return { validEmails, invalidEmails };
   };
 
-  const handleAddMembers = async (values: { emails: string[]; adminEmails: string[] }) => {
+  const handleAddMembers = async (values: { emails: string[]; adminEmails?: string[] }) => {
     if (!enterprise) return;
     
+    // 确保 adminEmails 始终是数组
+    const adminEmails = values.adminEmails || [];
+    const memberEmails = values.emails || [];
+    
     // 验证所有邮箱
-    const allEmails = Array.from(new Set([...values.emails, ...values.adminEmails]));
+    const allEmails = Array.from(new Set([...memberEmails, ...adminEmails]));
     const validationResult = await validateEnterpriseEmails(allEmails);
     if (validationResult.invalidEmails.length > 0) return;
     
@@ -367,7 +377,7 @@ const MemberManageModal: React.FC<{
       setLoading(true);
       const response = await addEnterpriseMembers(enterprise.id, {
         emails: allEmails,
-        adminEmails: values.adminEmails,
+        adminEmails: adminEmails,
       });
       
       if (response.statusCode === 1000) {
@@ -527,6 +537,11 @@ const MemberManageModal: React.FC<{
           {
             title: '时区',
             dataIndex: 'timezone',
+          },
+          {
+            title:'已使用次数',
+            dataIndex: 'usedQuota',
+            render: (usedQuota: number) => Math.floor(usedQuota / 10),
           },
           {
             title: '配额使用量',
@@ -1402,7 +1417,7 @@ export const MembershipForm: React.FC = () => {
                           </Col>
                           <Col span={8}>
                             <Form.Item name="contactPhone" label="联系电话">
-                              <Input placeholder="���输入联系电话" />
+                              <Input placeholder="请输入联系电话" />
                             </Form.Item>
                           </Col>
                           <Col span={8}>
