@@ -1,0 +1,98 @@
+
+你是一个专业的前端开发专家。我正在开发一个基于 React + TypeScript 的后台管理系统。需要你帮我完成以下任务：
+
+阅读项目项目代码，完成README.md文件的编写，并完善项目目录结构，数据库设计，API接口设计，项目主要功能，
+项目基本信息：
+- 项目名称：EasyKol Admin
+- 技术栈：React 18 + TypeScript + Ant Design Pro
+- 部署方式：Docker 容器化部署
+- 目标用户：管理员用户
+
+项目主要功能：
+1. 企业管理
+   - 企业信息的增删改查
+   - 企业成员管理（添加/移除成员，设置管理员）
+   - 企业配额管理
+   - 企业状态管理（激活/暂停/过期）
+
+2. 会员管理
+   - 会员信息查看
+   - 会员配额管理
+   - 会员有效期管理
+   - 批量会员操作
+
+3. 用户配额详情管理
+   - 配额使用明细查询
+   - 每日配额统计
+   - 配额使用趋势分析
+   - 配额预警管理
+
+4. 数据统计
+   - 企业配额使用统计
+   - 会员使用情况统计
+   - 系统整体使用趋势
+
+项目目录结构：
+```
+src/
+  ├── components/       # 组件目录
+  ├── services/        # API 服务
+  ├── types/           # TypeScript 类型定义
+  ├── conf/           # 配置文件
+  ├── utils/          # 工具函数
+  └── App.tsx         # 主应用组件
+```
+
+数据库设计：
+1. Enterprise（企业表）
+   - id: string (主键)
+   - name: string
+   - description: string
+   - accountQuota: number
+   - usedQuota: number
+   - status: EnterpriseStatus
+   - effectiveAt: Date
+   - expireAt: Date
+   - contactInfo: JSON
+
+2. EnterpriseMember（企业成员表）
+   - userId: string
+   - enterpriseId: string
+   - isEnterpriseAdmin: boolean
+   - email: string
+   - timezone: string
+   - accountQuota: number
+   - usedQuota: number
+
+3. QuotaDetail（配额明细表）
+   - userId: string
+   - time: Date
+   - quota_cost: number
+   - quota_type: string
+   - description: string
+
+API 接口：
+1. 企业管理接口
+   - GET /api/enterprise - 获取企业列表
+   - POST /api/enterprise - 创建企业
+   - PUT /api/enterprise/:id - 更新企业信息
+   - GET /api/enterprise/:id - 获取企业详情
+   - POST /api/enterprise/:id/members - 添加企业成员
+   - DELETE /api/enterprise/:id/members/:userId - 移除企业成员
+
+2. 会员管理接口
+   - GET /api/userMember/emails - 获取邮箱列表
+   - POST /api/userMember/admin - 更新会员信息
+   - GET /api/userMember/members - 获取会员列表
+   - POST /api/userMember/members-info - 获取会员详细信息
+
+3. 配额管理接口
+   - GET /api/userMember/quota/details - 获取配额明细
+   - GET /api/userMember/quota/daily - 获取每日配额统计
+
+4. 认证接口
+   - POST /auth/v1/token - 用户登录认证
+
+当前系统使用 Supabase 进行身份认证，使用 Docker 进行容器化部署，支持多平台构建。
+```
+

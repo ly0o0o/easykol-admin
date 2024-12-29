@@ -1,46 +1,76 @@
-# Getting Started with Create React App
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+```markdown
+# EasyKol Admin
 
-## Available Scripts
+EasyKol Admin 是一个基于 React + TypeScript + Ant Design Pro 的后台管理系统，主要用于管理企业会员配额和权限。
 
-In the project directory, you can run:
+## 项目特点
 
-### `npm start`
+- 🚀 使用最新的 React 18 + TypeScript 技术栈
+- 📦 基于 Ant Design Pro 的现代化 UI 设计
+- 🔐 集成 Supabase 身份认证
+- 🐳 Docker 容器化部署，支持多平台构建
+- 📊 完善的数据统计和分析功能
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+## 主要功能
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+### 1. 企业管理
+- 企业信息的增删改查
+- 企业成员管理（添加/移除成员，设置管理员）
+- 企业配额管理
+- 企业状态管理（激活/暂停/过期）
 
-### `npm test`
+### 2. 会员管理
+- 会员信息查看
+- 会员配额管理
+- 会员有效期管理
+- 批量会员操作
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### 3. 用户配额详情管理
+- 配额使用明细查询
+- 每日配额统计
+- 配额使用趋势分析
+- 配额预警管理
 
-### `npm run build`
+### 4. 数据统计
+- 企业配额使用统计
+- 会员使用情况统计
+- 系统整体使用趋势
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## 技术架构
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### 前端技术栈
+- React 18
+- TypeScript
+- Ant Design Pro
+- Dayjs
+- XLSX
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### 后端集成
+- Supabase 身份认证
+- RESTful API
 
-### `npm run eject`
+### 部署方案
+- Docker 容器化
+- Nginx 反向代理
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+## 项目结构
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+```
+src/
+  ├── components/       # 组件目录
+  │   └── membership/   # 会员管理相关组件
+  │       ├── MembershipForm.tsx        # 主容器组件
+  │       ├── QuotaManagement.tsx       # 配额管理组件
+  │       ├── MemberList.tsx            # 会员列表组件
+  │       ├── QuotaQuery.tsx            # 配额查询组件
+  │       ├── EnterpriseManagement.tsx  # 企业管理组件
+  │       ├── MemberCard.tsx            # 会员卡片组件
+  │       └── utils.ts                  # 工具函数
+  ├── services/        # API 服务
+  ├── types/           # TypeScript 类型定义
+  ├── conf/           # 配置文件
+  └── App.tsx         # 主应用组件
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+```
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
