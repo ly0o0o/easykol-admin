@@ -9,13 +9,11 @@ export enum MemberStatus {
 }
 
 export interface UpdateMembershipParams {
-  type?: MemberType;
+  type: string;
+  accountQuota: number;
   effectiveAt?: Date;
   expireAt?: Date;
-  accountQuota?: number;
-  timezone?: string;
-  status?: MemberStatus;
-  usedQuota?: number;
+  description?: string;
 } 
 
 // 添加新的接口定义

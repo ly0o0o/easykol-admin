@@ -63,7 +63,8 @@ body {
 
 /* 表单项样式 */
 .ant-form-item {
-    margin-bottom: 20px;
+    margin-bottom: 24px;
+    min-height: 38px;
 }
 
 .ant-form-item-label > label {
@@ -106,18 +107,20 @@ body {
 /* 多选标签样式 */
 .ant-select-multiple .ant-select-selector {
     min-height: 38px !important;
-    padding: 2px 6px !important;
+    height: auto !important;
+    padding: 4px 4px !important;
+    overflow: visible !important;
+    flex-wrap: wrap !important;
 }
 
 .ant-select-selection-item {
-    background: #f1f5f9 !important;
-    border: 1px solid #6366f1 !important;
-    border-radius: 6px !important;
-    padding: 2px 8px !important;
+    height: auto !important;
+    line-height: 1.5 !important;
     margin: 2px !important;
-    height: 26px !important;
-    line-height: 20px !important;
-    font-size: 13px !important;
+    padding: 2px 8px !important;
+    white-space: normal !important;
+    max-width: calc(100% - 8px) !important;
+    word-break: break-all !important;
 }
 
 /* 按钮样式 */
@@ -173,4 +176,100 @@ body {
     .ant-form-item {
         margin-bottom: 16px;
     }
+}
+
+/* 修改下拉菜单和选择框的样式 */
+.ant-select-dropdown.membership-select-dropdown {
+    z-index: 1100 !important;
+}
+
+/* 调整错误提示的位置和样式 */
+.ant-form-item-explain,
+.ant-form-item-extra {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 4px;
+    padding: 4px 0;
+    width: 100%;
+    background: white;
+    z-index: 1050;
+}
+
+/* 为有错误提示的表单项添加额外的下边距 */
+.ant-form-item-has-error {
+    margin-bottom: 64px;
+}
+
+/* 调整 Alert 组件的样式 */
+.ant-form-item .ant-alert {
+    margin-top: 8px;
+    position: relative;
+    z-index: 1050;
+}
+
+/* 确保表单项容器可以容纳溢出内容 */
+.ant-form-item-control-input {
+    min-height: 38px;
+    height: auto !important;
+}
+
+/* 调整选择框的外层容器样式 */
+.ant-form-item-control-input-content {
+    height: auto !important;
+    min-height: 38px;
+}
+
+/* 优化下拉菜单的最大高度和滚动 */
+.ant-select-dropdown.membership-select-dropdown .ant-select-item-list {
+    max-height: 256px;
+    overflow-y: auto;
+}
+
+/* 确保错误信息显示在正确的位置 */
+.ant-form-item-explain-error {
+    position: absolute;
+    width: 100%;
+    padding: 4px 0;
+    background: white;
+    z-index: 1050;
+    margin-top: 4px;
+}
+
+/* 优化错误提示的显示样式 */
+.ant-form-item-explain-error {
+    white-space: pre-line;
+    padding: 8px 12px;
+    background-color: #fff2f0;
+    border: 1px solid #ffccc7;
+    border-radius: 4px;
+    margin-top: 4px;
+    line-height: 1.5;
+}
+
+/* 优化错误提示的显示/隐藏 */
+.ant-form-item-explain {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.ant-form-item-has-error .ant-form-item-explain {
+    opacity: 1;
+}
+
+/* 确保表单项有足够的下边距来容纳错误提示 */
+.ant-form-item {
+    margin-bottom: 24px;
+    min-height: 38px;
+}
+
+.ant-form-item-has-error {
+    margin-bottom: 64px;
+}
+
+/* 错误提示的容器样式 */
+.ant-form-item-explain {
+    position: absolute;
+    width: 100%;
+    z-index: 1;
 }

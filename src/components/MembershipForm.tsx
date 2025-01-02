@@ -52,8 +52,9 @@ const MemberCard: React.FC<{ member: any }> = ({ member }) => (
         <Space direction="vertical" size="small">
           <div>类型: {member.membership.type}</div>
           <div>状态: {member.membership.status}</div>
-          <div>配额: {member.membership.accountQuota}</div>
-          <div>已用: {member.membership.usedQuota}</div>
+          <div>总任务次数: {member.membership.accountQuota/10}</div>
+          <div>已使用次数: {member.membership.usedQuota/10}</div>
+          <div>剩余次数: {(member.membership.accountQuota - member.membership.usedQuota)/10}</div>
           <div>有效时间: {dayjs(member.membership.effectiveAt).format('YYYY-MM-DD HH:mm:ss')}</div>
           <div>过期时间: {dayjs(member.membership.expireAt).format('YYYY-MM-DD HH:mm:ss')}</div>
           <div>创建时间: {dayjs(member.membership.createdAt).format('YYYY-MM-DD HH:mm:ss')}</div>
@@ -106,10 +107,9 @@ const EnterpriseDetailModal: React.FC<{
             <Descriptions bordered column={2}>
               <Descriptions.Item label="企业名称">{detail.name}</Descriptions.Item>
               <Descriptions.Item label="企业描述">{detail.description || '-'}</Descriptions.Item>
-              <Descriptions.Item label="配额总量">{detail.accountQuota}</Descriptions.Item>
-              <Descriptions.Item label="已用配额">{detail.usedQuota}</Descriptions.Item>
-              <Descriptions.Item label="已用次数">{detail.usedQuota/10}</Descriptions.Item>
-              <Descriptions.Item label="剩余次数">{detail.accountQuota/10 - detail.usedQuota/10}</Descriptions.Item>
+              <Descriptions.Item label="总任务次数">{detail.accountQuota/10}</Descriptions.Item>
+              <Descriptions.Item label="已使用次数">{detail.usedQuota/10}</Descriptions.Item>
+              <Descriptions.Item label="剩余次数">{(detail.accountQuota - detail.usedQuota)/10}</Descriptions.Item>
               <Descriptions.Item label="生效时间">
                 {dayjs(detail.effectiveAt).format('YYYY-MM-DD HH:mm:ss')}
               </Descriptions.Item>
@@ -127,32 +127,56 @@ const EnterpriseDetailModal: React.FC<{
             <Table
               dataSource={detail.members}
               rowKey="userId"
+              scroll={{ x: 1200 }}
+              size="small"
               columns={[
                 {
                   title: '成员邮箱',
                   dataIndex: ['user', 'email'],
+                  width: 200,
+                  fixed: 'left',
                 },
                 {
                   title: '角色',
                   dataIndex: 'isEnterpriseAdmin',
                   render: (value: boolean) => value ? '管理员' : '普通成员',
+                  width: 100,
                 },
                 {
-                  title: '时区',
-                  dataIndex: 'timezone',
-                },
-                {
-                  title: '配额总量',
+                  title: '总任务次数',
                   dataIndex: 'accountQuota',
+                  render: (quota: number) => quota/10,
+                  width: 120,
                 },
                 {
-                  title: '配额使用量',
-                  dataIndex: 'usedQuota',
+                  title: '已用/剩余',
+                  key: 'quotaInfo',
+                  width: 120,
+                  render: (_, record) => (
+                    <>
+                      {record.usedQuota/10} / {(record.accountQuota - record.usedQuota)/10}
+                    </>
+                  ),
+                },
+                {
+                  title: '有效期',
+                  key: 'validity',
+                  width: 200,
+                  render: (_, record) => (
+                    <>
+                      {dayjs(record.effectiveAt).format('YYYY-MM-DD')}
+                      <br />
+                      至
+                      <br />
+                      {dayjs(record.expireAt).format('YYYY-MM-DD')}
+                    </>
+                  ),
                 },
                 {
                   title: '状态',
                   dataIndex: 'status',
-                },
+                  width: 100,
+                }
               ]}
             />
           </>
@@ -176,6 +200,7 @@ const EnterpriseEditModal: React.FC<{
     if (visible && enterprise) {
       form.setFieldsValue({
         ...enterprise,
+        accountQuota: enterprise.accountQuota / 10,
         effectiveAt: enterprise.effectiveAt ? dayjs(enterprise.effectiveAt) : undefined,
         expireAt: enterprise.expireAt ? dayjs(enterprise.expireAt) : undefined,
       });
@@ -189,6 +214,7 @@ const EnterpriseEditModal: React.FC<{
       setLoading(true);
       const params: UpdateEnterpriseParams = {
         ...values,
+        accountQuota: values.accountQuota * 10,
         effectiveAt: values.effectiveAt?.toISOString(),
         expireAt: values.expireAt?.toISOString(),
       };
@@ -225,8 +251,25 @@ const EnterpriseEditModal: React.FC<{
         <Form.Item name="description" label="企业描述">
           <Input.TextArea />
         </Form.Item>
-        <Form.Item name="accountQuota" label="配额总量">
-          <InputNumber style={{ width: '100%' }} />
+        <Form.Item
+          name="accountQuota"
+          label="任务次数"
+          rules={[
+            { required: true, message: '请输入任务次数' },
+            { type: 'number', min: 0, message: '任务次数必须大于0' }
+          ]}
+        >
+          <InputNumber 
+            style={{ width: '100%' }} 
+            min={0} 
+            placeholder="请输入任务次数"
+            onChange={(value) => {
+              if (value !== null) {
+                // 直接存储用户输入的次数，在提交时再转换为配额
+                form.setFieldsValue({ accountQuota: value });
+              }
+            }}
+          />
         </Form.Item>
         <Form.Item name="effectiveAt" label="生效时间">
           <DatePicker showTime style={{ width: '100%' }} />
@@ -534,12 +577,19 @@ const MemberManageModal: React.FC<{
             dataIndex: 'timezone',
           },
           {
-            title: '配额使用量',
-            dataIndex: 'usedQuota',
+            title: '总任务次数',
+            dataIndex: 'accountQuota',
+            render: (quota: number) => quota/10,
           },
           {
-            title: '配额总量',
-            dataIndex: 'accountQuota',
+            title: '已使用次数',
+            dataIndex: 'usedQuota',
+            render: (quota: number) => quota/10,
+          },
+          {
+            title: '剩余次数',
+            key: 'remainingQuota',
+            render: (_, record) => (record.accountQuota - record.usedQuota)/10,
           },
           {
             title: '生效时间',
@@ -653,31 +703,38 @@ export const MembershipForm: React.FC = () => {
   };
 
   const handleSubmit = async (values: any) => {
-    // 添加邮箱验证
-    const invalidEmails = values.emails.filter((email: string) => !emails.includes(email));
-    if (invalidEmails.length > 0) {
-      message.error(`以下邮箱不在数据库中，请叫他们先注册吧，大头！：${invalidEmails.join(', ')}`);
-      return;
-    }
-
-    const params: UpdateMembershipParams = {
-      type: values.type,
-      effectiveAt: values.effectiveAt?.hour(values.effectiveAt.hour() + 8).toDate(),
-      expireAt: values.expireAt?.hour(values.expireAt.hour() + 8).toDate(),
-      accountQuota: values.accountQuota,
-      timezone: values.timezone,
-      status: values.status,
-      usedQuota: values.usedQuota,
-    };
-
     try {
       setLoading(true);
-      const result = await updateMembership(values.emails, params, values.description);
-      if (result.statusCode === 1000) {
-        message.success(result.message || '更新成功');
+      
+      // 验证必填字段
+      if (!values.emails || values.emails.length === 0) {
+        message.error('请选择邮箱');
+        return;
+      }
+      
+      if (!values.accountQuota) {
+        message.error('请输入任务次数');
+        return;
+      }
+
+      const params: UpdateMembershipParams = {
+        type: values.type || 'PAID',
+        accountQuota: values.accountQuota,
+        // 只有当选择了时间才添加到参数中
+        ...(values.effectiveAt && { effectiveAt: values.effectiveAt?.toDate() }),
+        ...(values.expireAt && { expireAt: values.expireAt?.toDate() }),
+        ...(values.description && { description: values.description })
+      };
+
+      const response = await updateMembership(
+        values.emails.map((email: string) => email.toLowerCase()),
+        params
+      );
+
+      if (response.statusCode === 1000) {
+        message.success('更新成功');
         form.resetFields();
-      } else {
-        message.error(result.message || '更新失败');
+        setSelectedMembers([]);
       }
     } catch (error) {
       message.error('更新失败');
@@ -731,22 +788,24 @@ export const MembershipForm: React.FC = () => {
       width: '20%',
     },
     {
-      title: '总配额',
+      title: '总任务次数',
       dataIndex: 'accountQuota',
       key: 'accountQuota',
       width: '10%',
+      render: (quota: number) => quota/10,
     },
     {
-      title: '已使用',
+      title: '已使用次数',
       dataIndex: 'usedQuota',
       key: 'usedQuota',
       width: '10%',
+      render: (quota: number) => quota/10,
     },
     {
-      title: '可用配额',
+      title: '剩余次数',
       key: 'availableQuota',
       width: '10%',
-      render: (record: any) => record.accountQuota - record.usedQuota,
+      render: (record: any) => (record.accountQuota - record.usedQuota)/10,
     },
     {
       title: '有效时间',
@@ -904,12 +963,19 @@ export const MembershipForm: React.FC = () => {
       dataIndex: 'name',
     },
     {
-      title: '配额',
+      title: '总任务次数',
       dataIndex: 'accountQuota',
+      render: (quota: number) => quota/10,
     },
     {
-      title: '状态',
-      dataIndex: 'status',
+      title: '已使用次数',
+      dataIndex: 'usedQuota',
+      render: (quota: number) => quota/10,
+    },
+    {
+      title: '剩余次数',
+      key: 'availableQuota',
+      render: (record: any) => (record.accountQuota - record.usedQuota)/10,
     },
     {
       title: '生效时间',
@@ -978,7 +1044,6 @@ export const MembershipForm: React.FC = () => {
                     onFinish={handleSubmit}
                     layout="vertical"
                   >
-
                     <Form.Item
                       name="emails"
                       label={
@@ -988,25 +1053,48 @@ export const MembershipForm: React.FC = () => {
                         </span>
                       }
                       required
+                      validateTrigger={['onChange', 'onBlur']}
+                      validateFirst={true}
                       rules={[
-                        {
-                          validator: async (_: any, value: string[]) => {
-                            if (!value || value.length === 0) {
-                              // 当清空所有邮箱时，清空选中的会员信息
+                        { 
+                          required: true, 
+                          message: '请选择邮箱',
+                          validator: async (_, value) => {
+                            if (!value) {
                               setSelectedMembers([]);
-                              return;
+                              return Promise.reject('请选择邮箱');
                             }
+                            return Promise.resolve();
+                          }
+                        },
+                        {
+                          validator: async (_, value) => {
+                            if (!value || value.length === 0) {
+                              return Promise.resolve();
+                            }
+                            
+                            const errors: string[] = [];
+                            
+                            // 邮箱格式验证
                             const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-                            const invalidFormatEmails = value.filter(email => !emailRegex.test(email));
+                            const invalidFormatEmails = value.filter((email: string) => !emailRegex.test(email));
                             if (invalidFormatEmails.length > 0) {
-                              throw new Error(`以下邮箱格式不正确：${invalidFormatEmails.join(', ')}`);
+                              errors.push(`格式错误的邮箱：\n${invalidFormatEmails.join('\n')}`);
                             }
-                            const invalidEmails = value.filter(email => !emails.includes(email));
+
+                            // 验证邮箱是否在数据库中
+                            const invalidEmails = value.filter((email: string) => !emails.includes(email)&&!invalidFormatEmails.includes(email));
                             if (invalidEmails.length > 0) {
-                              throw new Error(`以下邮箱不在数据库中，请叫他们先注册吧，大头！：${invalidEmails.join(', ')}`);
+                              errors.push(`未注册的邮箱：\n${invalidEmails.join('\n')}`);
                             }
+
+                            if (errors.length > 0) {
+                              return Promise.reject(errors.join('\n\n'));
+                            }
+
                             // 获取选中邮箱的会员信息
                             await fetchMembersInformation(value);
+                            return Promise.resolve();
                           }
                         }
                       ]}
@@ -1016,13 +1104,24 @@ export const MembershipForm: React.FC = () => {
                         placeholder="请选择或输入邮箱"
                         style={{ width: '100%' }}
                         size="large"
-                        options={emails.map(email => ({ value: email, label: email }))}
+                        allowClear
+                        options={emails.map(email => ({ value: email.toLowerCase(), label: email.toLowerCase() }))}
                         onChange={(values: string[]) => {
-                          // 当邮箱选择发生变化时，更新会员信息
-                          if (values.length === 0) {
+                          const lowerCaseValues = values.map(v => v.toLowerCase());
+                          form.setFieldsValue({ emails: lowerCaseValues });
+                          
+                          if (lowerCaseValues.length === 0) {
                             setSelectedMembers([]);
+                            form.validateFields(['emails']);
                           }
                         }}
+                        onClear={() => {
+                          setSelectedMembers([]);
+                          form.setFieldsValue({ emails: undefined });
+                          form.validateFields(['emails']);
+                        }}
+                        onSearch={(value: string) => value.toLowerCase()}
+                        tokenSeparators={[',', ' ', ';']}
                       />
                     </Form.Item>
 
@@ -1059,37 +1158,40 @@ export const MembershipForm: React.FC = () => {
                       label={
                         <span>
                           <NumberOutlined style={{ marginRight: '8px' }} />
-                          账户配额
+                          任务次数
                         </span>
                       }
                       required
+                      rules={[
+                        { required: true, message: '请输入任务次数' }
+                      ]}
                     >
                       <Space direction="vertical" style={{ width: '100%' }}>
                         <InputNumber
                           style={{ width: '100%' }}
                           min={0}
-                          placeholder="请输入配额数量"
+                          placeholder="请输入任务次数"
                           size="large"
                           value={quotaValue}
                           onChange={(value) => {
                             setQuotaValue(value);
-                            if (value) {
-                              form.setFieldsValue({ accountQuota: value });
-                              message.success(`配额已设置为 ${value}`);
+                            if (value !== null) {
+                              form.setFieldsValue({ accountQuota: value*10 });
+                              message.success(`已设置 ${value} 次任务`);
                             }
                           }}
                         />
                         <Space wrap>
-                          {[30, 100, 200, 500, 1000, 10000].map(quota => (
+                          {[3, 10, 20, 50, 100, 1000].map(times => (
                             <Button
-                              key={quota}
+                              key={times}
                               onClick={() => {
-                                setQuotaValue(quota);
-                                form.setFieldsValue({ accountQuota: quota });
-                                message.success(`配额已设置为 ${quota}`);
+                                setQuotaValue(times);
+                                form.setFieldsValue({ accountQuota: times*10 });
+                                message.success(`已设置 ${times} 次任务`);
                               }}
                             >
-                              {quota}
+                              {times}次
                             </Button>
                           ))}
                         </Space>
@@ -1098,40 +1200,36 @@ export const MembershipForm: React.FC = () => {
 
                     <Row gutter={16}>
                       <Col span={12}>
-                        <Form.Item 
-                          name="effectiveAt" 
+                        <Form.Item
+                          name="effectiveAt"
                           label={
                             <span>
                               <CalendarOutlined style={{ marginRight: '8px' }} />
                               生效时间
                             </span>
                           }
-                          required
                         >
                           <DatePicker 
                             showTime 
                             style={{ width: '100%' }} 
-                            size="large"
-                            placeholder="请选择生效时间"
+                            placeholder="请选择生效时间（选填）"
                           />
                         </Form.Item>
                       </Col>
                       <Col span={12}>
-                        <Form.Item 
-                          name="expireAt" 
+                        <Form.Item
+                          name="expireAt"
                           label={
                             <span>
                               <CalendarOutlined style={{ marginRight: '8px' }} />
                               过期时间
                             </span>
                           }
-                          required
                         >
                           <DatePicker 
                             showTime 
                             style={{ width: '100%' }} 
-                            size="large"
-                            placeholder="请选择过期时间"
+                            placeholder="请选择过期时间（选填）"
                           />
                         </Form.Item>
                       </Col>
@@ -1277,8 +1375,9 @@ export const MembershipForm: React.FC = () => {
                                 dataIndex: 'email',
                               },
                               {
-                                title: '每日使用量',
+                                title: '任务使用次数',
                                 dataIndex: 'daily_usage',
+                                render: (usage: number) => usage/10,
                               },
                             ]}
                             loading={quotaLoading}
@@ -1299,8 +1398,9 @@ export const MembershipForm: React.FC = () => {
                                 render: (time) => dayjs(time).format('YYYY-MM-DD HH:mm:ss'),
                               },
                               {
-                                title: '配额消耗',
+                                title: '使用次数',
                                 dataIndex: 'quota_cost',
+                                render: (cost: number) => cost/10,
                               },
                               {
                                 title: '配额类型',
@@ -1345,7 +1445,13 @@ export const MembershipForm: React.FC = () => {
                           return;
                         }
 
-                        await createEnterprise(values);
+                        // 提交时将任务次数转换为配额
+                        const params = {
+                          ...values,
+                          accountQuota: values.accountQuota * 10, // 转换为配额
+                        };
+
+                        await createEnterprise(params);
                         message.success('创建企业成功');
                         enterpriseForm.resetFields();
                         fetchEnterprises();
@@ -1368,10 +1474,23 @@ export const MembershipForm: React.FC = () => {
                       <Col span={12}>
                         <Form.Item
                           name="accountQuota"
-                          label="账户配额"
-                          rules={[{ required: true, message: '请输入账户配额' }]}
+                          label="任务次数"
+                          rules={[
+                            { required: true, message: '请输入任务次数' },
+                            { type: 'number', min: 0, message: '任务次数必须大于0' }
+                          ]}
                         >
-                          <InputNumber style={{ width: '100%' }} min={0} placeholder="请输入配额数量" />
+                          <InputNumber 
+                            style={{ width: '100%' }} 
+                            min={0} 
+                            placeholder="请输入任务次数"
+                            onChange={(value) => {
+                              if (value !== null) {
+                                // 直接存储用户输入的次数，在提交时再转换为配额
+                                enterpriseForm.setFieldsValue({ accountQuota: value });
+                              }
+                            }}
+                          />
                         </Form.Item>
                       </Col>
                     </Row>
@@ -1381,7 +1500,9 @@ export const MembershipForm: React.FC = () => {
                         <Form.Item
                           name="effectiveAt"
                           label="生效时间"
-                          rules={[{ required: true, message: '请选择生效时间' }]}
+                          rules={[
+                            { required: true, message: '请选择生效时间' }
+                          ]}
                         >
                           <DatePicker showTime style={{ width: '100%' }} />
                         </Form.Item>
@@ -1390,7 +1511,9 @@ export const MembershipForm: React.FC = () => {
                         <Form.Item
                           name="expireAt"
                           label="过期时间"
-                          rules={[{ required: true, message: '请选择过期时间' }]}
+                          rules={[
+                            { required: true, message: '请选择过期时间' }
+                          ]}
                         >
                           <DatePicker showTime style={{ width: '100%' }} />
                         </Form.Item>
@@ -1472,7 +1595,17 @@ export const MembershipForm: React.FC = () => {
                           mode="tags"
                           style={{ width: '100%' }}
                           placeholder="请输入成员邮箱"
-                          options={emails.map(email => ({ value: email, label: email }))}
+                          options={emails.map(email => ({ value: email.toLowerCase(), label: email.toLowerCase() }))}
+                          onChange={(values: string[]) => {
+                            // 将所有输入转换为小写
+                            const lowerCaseValues = values.map(v => v.toLowerCase());
+                            enterpriseForm.setFieldsValue({ memberEmails: lowerCaseValues });
+                          }}
+                          onSearch={(value: string) => {
+                            // 搜索时转换为小写
+                            return value.toLowerCase();
+                          }}
+                          tokenSeparators={[',', ' ', ';']}
                         />
                       </Form.Item>
                       {enterpriseEmailValidation.invalid.length > 0 && (

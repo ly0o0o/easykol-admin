@@ -10,24 +10,33 @@ export interface Enterprise {
   description?: string;
   accountQuota: number;
   usedQuota: number;
-  effectiveAt: Date;
-  expireAt: Date;
-  status: EnterpriseStatus;
+  effectiveAt?: string;
+  expireAt: string;
+  status: string;
   contactPerson?: string;
   contactPhone?: string;
   contactEmail?: string;
   industry?: string;
   scale?: string;
   address?: string;
-  members?: EnterpriseMember[];
+  members: EnterpriseMember[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface EnterpriseMember {
   userId: string;
   user: {
     email: string;
+    avatar?: string;
   };
   isEnterpriseAdmin: boolean;
+  timezone?: string;
+  status: string;
+  accountQuota: number;
+  usedQuota: number;
+  effectiveAt?: string;
+  expireAt?: string;
 }
 
 export interface CreateEnterpriseParams {
