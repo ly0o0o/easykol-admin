@@ -143,18 +143,12 @@ const EnterpriseDetailModal: React.FC<{
                   width: 100,
                 },
                 {
-                  title: '总任务次数',
-                  dataIndex: 'accountQuota',
-                  render: (quota: number) => quota/10,
-                  width: 120,
-                },
-                {
-                  title: '已用/剩余',
+                  title: '已用',
                   key: 'quotaInfo',
                   width: 120,
                   render: (_, record) => (
                     <>
-                      {record.usedQuota/10} / {(record.accountQuota - record.usedQuota)/10}
+                      {record.usedQuota/10} 
                     </>
                   ),
                 },
@@ -577,19 +571,9 @@ const MemberManageModal: React.FC<{
             dataIndex: 'timezone',
           },
           {
-            title: '总任务次数',
-            dataIndex: 'accountQuota',
-            render: (quota: number) => quota/10,
-          },
-          {
             title: '已使用次数',
             dataIndex: 'usedQuota',
             render: (quota: number) => quota/10,
-          },
-          {
-            title: '剩余次数',
-            key: 'remainingQuota',
-            render: (_, record) => (record.accountQuota - record.usedQuota)/10,
           },
           {
             title: '生效时间',
