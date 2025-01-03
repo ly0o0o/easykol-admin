@@ -703,7 +703,7 @@ export const MembershipForm: React.FC = () => {
 
       const params: UpdateMembershipParams = {
         type: values.type || 'PAID',
-        accountQuota: values.accountQuota,
+        accountQuota: values.accountQuota*10 ,
         // 只有当选择了时间才添加到参数中
         ...(values.effectiveAt && { effectiveAt: values.effectiveAt?.toDate() }),
         ...(values.expireAt && { expireAt: values.expireAt?.toDate() }),
@@ -1160,7 +1160,7 @@ export const MembershipForm: React.FC = () => {
                           onChange={(value) => {
                             setQuotaValue(value);
                             if (value !== null) {
-                              form.setFieldsValue({ accountQuota: value*10 });
+                              form.setFieldsValue({ accountQuota: value });
                               message.success(`已设置 ${value} 次任务`);
                             }
                           }}
@@ -1171,7 +1171,7 @@ export const MembershipForm: React.FC = () => {
                               key={times}
                               onClick={() => {
                                 setQuotaValue(times);
-                                form.setFieldsValue({ accountQuota: times*10 });
+                                form.setFieldsValue({ accountQuota: times });
                                 message.success(`已设置 ${times} 次任务`);
                               }}
                             >
