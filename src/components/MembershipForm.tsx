@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Form, Input, DatePicker, InputNumber, Select, Button, message, Row, Col, Table, Card, Space, Tabs, Avatar, Spin, Typography, Collapse, Alert, Tag, Tooltip, Modal, Divider, Descriptions } from 'antd';
-import type { UpdateMembershipParams,QuotaDetail,DailyQuota } from '../types/types';
 import { 
   fetchEmails, 
   updateMembership, 
@@ -29,12 +28,14 @@ import {
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import '../styles/MembershipForm.css';
-import * as XLSX from 'xlsx';
 import {
   Enterprise,
   EnterpriseMember,
   UpdateEnterpriseParams,
 } from '../types/enterprise';
+import { exportQuotaToExcel } from '../utils/excel';
+import type { UpdateMembershipParams } from '../types/types';
+import type { QuotaDetail, DailyQuota } from '../utils/excel';
 
 const { Panel } = Collapse;
 
@@ -841,105 +842,6 @@ export const MembershipForm: React.FC = () => {
     }
   };
 
-  // 修改导出Excel功能，添加列宽设置
-  const exportToExcel = (email: string) => {
-    // 处理配额明细数据
-    const detailsData = quotaDetails.map(item => ({
-      时间: dayjs(item.time).format('YYYY-MM-DD HH:mm:ss'),
-      配额消耗: item.quota_cost,
-      配额类型: item.quota_type,
-      描述: item.description,
-      邮箱: item.email
-    }));
-
-    // 处理每日统计数据
-    const dailyData = dailyQuota.map(item => ({
-      日期: dayjs(item.date).format('YYYY-MM-DD'),
-      邮箱: item.email,
-      每日使用量: item.daily_usage
-    }));
-    
-    // 创建工作表并设置列宽
-    const detailsWorksheet = XLSX.utils.json_to_sheet(detailsData);
-    const dailyWorksheet = XLSX.utils.json_to_sheet(dailyData);
-    
-    // 设置列宽
-    const detailsCols = [
-      { wch: 20 },  // 时间
-      { wch: 12 },  // 配额消耗
-      { wch: 15 },  // 配额类型
-      { wch: 50 },  // 描述
-      { wch: 30 },  // 邮箱
-    ];
-    
-    const dailyCols = [
-      { wch: 15 },  // 日期
-      { wch: 30 },  // 邮箱
-      { wch: 12 },  // 每日使用量
-    ];
-    
-    detailsWorksheet['!cols'] = detailsCols;
-    dailyWorksheet['!cols'] = dailyCols;
-    
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, detailsWorksheet, "配额明细");
-    XLSX.utils.book_append_sheet(workbook, dailyWorksheet, "每日统计");
-    
-    XLSX.writeFile(workbook, `配额查询结果_${email}_${dayjs().format('YYYY-MM-DD')}.xlsx`);
-  };
-
-  // 修改获取企业列表的方法
-  const fetchEnterprises = async () => {
-    try {
-      setEnterpriseLoading(true);
-      const response = await fetchEnterprisesList({});
-      if (response.statusCode === 1000) {
-        setEnterprises(response.data);
-      }
-    } catch (error) {
-      message.error('获取企业列表失败');
-    } finally {
-      setEnterpriseLoading(false);
-    }
-  };
-
-  // 在组件加载时获取企业列表
-  useEffect(() => {
-    fetchEnterprises();
-  }, []);
-
-  // 修复验证函数
-  const validateEnterpriseEmails = async (memberEmails: string[], adminEmails: string[] = []) => {
-    const combinedEmails = Array.from(new Set([...memberEmails, ...adminEmails]));
-    
-    try {
-      // 1. 验证邮箱格式
-      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-      const invalidFormatEmails = combinedEmails.filter(email => !emailRegex.test(email));
-      
-      // 2. 验证邮箱是否在系统中
-      const validFormatEmails = combinedEmails.filter(email => emailRegex.test(email));
-      const { data } = await fetchMembersInfo(validFormatEmails);
-      
-      const validEmails = data.users.map(user => user.email);
-      const invalidEmails = [
-        ...invalidFormatEmails,
-        ...data.stats.notFoundEmails
-      ];
-
-      setEnterpriseEmailValidation({
-        valid: validEmails,
-        invalid: invalidEmails
-      });
-
-      return { validEmails, invalidEmails };
-    } catch (error) {
-      message.error('验证邮箱失败');
-      // 使用已定义的 combinedEmails
-      return { validEmails: [], invalidEmails: combinedEmails };
-    }
-  };
-
   // 将列定义移到组件内部
   const enterpriseColumns = [
     {
@@ -1007,6 +909,58 @@ export const MembershipForm: React.FC = () => {
       ),
     },
   ];
+
+  // 修改获取企业列表的方法
+  const fetchEnterprises = async () => {
+    try {
+      setEnterpriseLoading(true);
+      const response = await fetchEnterprisesList({});
+      if (response.statusCode === 1000) {
+        setEnterprises(response.data);
+      }
+    } catch (error) {
+      message.error('获取企业列表失败');
+    } finally {
+      setEnterpriseLoading(false);
+    }
+  };
+
+  // 在组件加载时获取企业列表
+  useEffect(() => {
+    fetchEnterprises();
+  }, []);
+
+  // 修复验证函数
+  const validateEnterpriseEmails = async (memberEmails: string[], adminEmails: string[] = []) => {
+    const combinedEmails = Array.from(new Set([...memberEmails, ...adminEmails]));
+    
+    try {
+      // 1. 验证邮箱格式
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      const invalidFormatEmails = combinedEmails.filter(email => !emailRegex.test(email));
+      
+      // 2. 验证邮箱是否在系统中
+      const validFormatEmails = combinedEmails.filter(email => emailRegex.test(email));
+      const { data } = await fetchMembersInfo(validFormatEmails);
+      
+      const validEmails = data.users.map(user => user.email);
+      const invalidEmails = [
+        ...invalidFormatEmails,
+        ...data.stats.notFoundEmails
+      ];
+
+      setEnterpriseEmailValidation({
+        valid: validEmails,
+        invalid: invalidEmails
+      });
+
+      return { validEmails, invalidEmails };
+    } catch (error) {
+      message.error('验证邮箱失败');
+      // 使用已定义的 combinedEmails
+      return { validEmails: [], invalidEmails: combinedEmails };
+    }
+  };
 
   return (
     <div className="App">
@@ -1328,7 +1282,7 @@ export const MembershipForm: React.FC = () => {
                             icon={<DownloadOutlined />}
                             onClick={() => {
                               const email = queryForm.getFieldValue('email');
-                              exportToExcel(email);
+                              exportQuotaToExcel(email, quotaDetails, dailyQuota);
                             }}
                             disabled={!quotaDetails.length}
                           >
