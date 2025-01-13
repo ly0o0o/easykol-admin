@@ -487,3 +487,36 @@ export const removeEnterpriseMember = async (enterpriseId: string, userId: strin
   }
 };
 
+export const deleteEnterprise = async (enterpriseId: string) => {
+  try {
+    return new Promise<ApiResponse<any>>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('DELETE', `${API_BASE_URL}/enterprise/${enterpriseId}`);
+      xhr.setRequestHeader('Accept', 'application/json');
+      
+      xhr.onload = function() {
+        if (xhr.status === 200) {
+          try {
+            const response = JSON.parse(xhr.responseText);
+            resolve(response);
+          } catch (error) {
+            reject(new Error('解析响应失败'));
+          }
+        } else {
+          reject(new Error('删除企业失败'));
+        }
+      };
+      
+      xhr.onerror = function() {
+        reject(new Error('请求失败'));
+      };
+      
+      xhr.send();
+    });
+  } catch (error) {
+    console.error('deleteEnterprise error:', error);
+    throw error;
+  }
+};
+
+

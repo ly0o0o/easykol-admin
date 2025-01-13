@@ -12,7 +12,8 @@ import {
   updateEnterprise,
   addEnterpriseMembers,
   removeEnterpriseMember,
-  getEnterprises as fetchEnterprisesList
+  getEnterprises as fetchEnterprisesList,
+  deleteEnterprise
 } from '../services/api';
 import { 
   UserOutlined, 
@@ -24,7 +25,8 @@ import {
   DownloadOutlined,
   SearchOutlined,
   BankOutlined,
-  InfoCircleOutlined
+  InfoCircleOutlined,
+  DeleteOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import '../styles/MembershipForm.css';
@@ -904,6 +906,34 @@ export const MembershipForm: React.FC = () => {
             }}
           >
             成员管理
+          </Button>
+          <Button
+            type="link"
+            danger
+            icon={<DeleteOutlined />}
+            onClick={() => {
+              Modal.confirm({
+                title: '确认删除',
+                content: `确定要删除企业"${record.name}"吗？此操作不可恢复。`,
+                okText: '确认',
+                cancelText: '取消',
+                onOk: async () => {
+                  try {
+                    const response = await deleteEnterprise(record.id);
+                    if (response.statusCode === 1000) {
+                      message.success('删除企业成功');
+                      fetchEnterprises(); // 刷新列表
+                    } else {
+                      message.error(response.message || '删除企业失败');
+                    }
+                  } catch (error) {
+                    message.error('删除企业失败');
+                  }
+                }
+              });
+            }}
+          >
+            删除
           </Button>
         </Space>
       ),

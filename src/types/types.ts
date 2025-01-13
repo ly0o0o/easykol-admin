@@ -44,6 +44,7 @@ export interface CreateEnterpriseParams {
   name: string
   description?: string
   accountQuota: number
+  memberUsageDailyLimit?: number
   effectiveAt?: Date
   expireAt: Date
   contactPerson?: string
@@ -60,6 +61,7 @@ export interface UpdateEnterpriseParams {
   name?: string
   description?: string
   accountQuota?: number
+  memberUsageDailyLimit?: number
   effectiveAt?: Date
   expireAt?: Date
   status?: EnterpriseStatus
