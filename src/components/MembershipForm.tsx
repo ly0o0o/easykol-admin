@@ -113,6 +113,7 @@ const EnterpriseDetailModal: React.FC<{
               <Descriptions.Item label="总任务次数">{detail.accountQuota/10}</Descriptions.Item>
               <Descriptions.Item label="已使用次数">{detail.usedQuota/10}</Descriptions.Item>
               <Descriptions.Item label="剩余次数">{(detail.accountQuota - detail.usedQuota)/10}</Descriptions.Item>
+              <Descriptions.Item label="成员每日次数使用限制">{detail.memberUsageDailyLimit?detail.memberUsageDailyLimit/10:'-'}</Descriptions.Item>
               <Descriptions.Item label="生效时间">
                 {dayjs(detail.effectiveAt).format('YYYY-MM-DD HH:mm:ss')}
               </Descriptions.Item>
@@ -198,13 +199,14 @@ const EnterpriseEditModal: React.FC<{
       form.setFieldsValue({
         ...enterprise,
         accountQuota: enterprise.accountQuota / 10,
+        memberUsageDailyLimit: enterprise.memberUsageDailyLimit ? enterprise.memberUsageDailyLimit / 10 : undefined,
         effectiveAt: enterprise.effectiveAt ? dayjs(enterprise.effectiveAt) : undefined,
         expireAt: enterprise.expireAt ? dayjs(enterprise.expireAt) : undefined,
       });
     }
   }, [visible, enterprise]);
 
-  const handleSubmit = async (values: any) => {
+  const handleEnterpriseEditSubmit = async (values: any) => {
     if (!enterprise) return;
     
     try {
@@ -212,6 +214,7 @@ const EnterpriseEditModal: React.FC<{
       const params: UpdateEnterpriseParams = {
         ...values,
         accountQuota: values.accountQuota * 10,
+        memberUsageDailyLimit: values.memberUsageDailyLimit ? values.memberUsageDailyLimit * 10 : undefined,
         effectiveAt: values.effectiveAt?.toISOString(),
         expireAt: values.expireAt?.toISOString(),
       };
@@ -239,7 +242,7 @@ const EnterpriseEditModal: React.FC<{
     >
       <Form
         form={form}
-        onFinish={handleSubmit}
+        onFinish={handleEnterpriseEditSubmit}
         layout="vertical"
       >
         <Form.Item name="name" label="企业名称">
@@ -250,7 +253,7 @@ const EnterpriseEditModal: React.FC<{
         </Form.Item>
         <Form.Item
           name="accountQuota"
-          label="任务次数"
+          label="企业任务总次数"
           rules={[
             { required: true, message: '请输入任务次数' },
             { type: 'number', min: 0, message: '任务次数必须大于0' }
@@ -264,6 +267,25 @@ const EnterpriseEditModal: React.FC<{
               if (value !== null) {
                 // 直接存储用户输入的次数，在提交时再转换为配额
                 form.setFieldsValue({ accountQuota: value });
+              }
+            }}
+          />
+        </Form.Item>
+        <Form.Item
+          name="memberUsageDailyLimit"
+          label="成员每日次数使用限制"
+          rules={[
+            { type: 'number', min: 0, message: '成员每日次数使用限制必须大于等于0' }
+          ]}
+        >
+          <InputNumber 
+            style={{ width: '100%' }} 
+            min={0} 
+            placeholder="请输入成员每日使用限制（选填）"
+            onChange={(value) => {
+              if (value !== null) {
+                // 直接存储用户输入的次数，在提交时再转换为配额
+                form.setFieldsValue({ memberUsageDailyLimit: value });
               }
             }}
           />
@@ -866,6 +888,11 @@ export const MembershipForm: React.FC = () => {
       render: (record: any) => (record.accountQuota - record.usedQuota)/10,
     },
     {
+      title: '成员每日使用限制',
+      key: 'memberUsageDailyLimit',
+      render: (record: any) => record.memberUsageDailyLimit ? record.memberUsageDailyLimit/10 : '-',
+    },
+    {
       title: '生效时间',
       dataIndex: 'effectiveAt',
       render: (date: string) => dayjs(date).format('YYYY-MM-DD HH:mm:ss'),
@@ -1417,6 +1444,7 @@ export const MembershipForm: React.FC = () => {
                         const params = {
                           ...values,
                           accountQuota: values.accountQuota * 10, // 转换为配额
+                          memberUsageDailyLimit: values.memberUsageDailyLimit ? values.memberUsageDailyLimit * 10 : undefined,
                         };
 
                         await createEnterprise(params);
@@ -1487,6 +1515,36 @@ export const MembershipForm: React.FC = () => {
                         </Form.Item>
                       </Col>
                     </Row>
+                    <Row gutter={16}>
+                   <Col span={12}>
+                        <Form.Item
+                          name="memberUsageDailyLimit"
+                          label={
+                            <Space>
+                              <span>每日使用限制</span>
+                              <Tooltip title="设置企业成员每日可使用的最大任务次数">
+                                <InfoCircleOutlined />
+                              </Tooltip>
+                            </Space>
+                          }
+                          rules={[
+                            { type: 'number', min: 0, message: '每日使用限制必须大于等于0' }
+                          ]}
+                        >
+                          <InputNumber 
+                            style={{ width: '100%' }} 
+                            min={0} 
+                            placeholder="请输入每日使用限制（选填）"
+                            onChange={(value) => {
+                              if (value !== null) {
+                                enterpriseForm.setFieldsValue({ memberUsageDailyLimit: value });
+                              }
+                            }}
+                          />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+
 
                     <Collapse ghost style={{ marginBottom: 24 }}>
                       <Panel header="基础信息（选填）" key="1">

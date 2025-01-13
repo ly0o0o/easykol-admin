@@ -10,6 +10,7 @@ export interface Enterprise {
   description?: string;
   accountQuota: number;
   usedQuota: number;
+  memberUsageDailyLimit?: number;
   effectiveAt?: string;
   expireAt: string;
   status: string;
